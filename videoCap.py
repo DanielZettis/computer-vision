@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture('traffic.mp4')
+cap = cv2.VideoCapture('traffic1.mp4')
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 
 ret, frame1 = cap.read()
@@ -26,4 +26,3 @@ while cap.isOpened():
 
 cv2.destroyAllWindows()
 cap.release()
-out.release()
