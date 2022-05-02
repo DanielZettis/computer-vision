@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture('1.mp4')
+cap = cv2.VideoCapture('traffic1.mp4')
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 
 ret, frame1 = cap.read()
