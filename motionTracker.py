@@ -1,71 +1,83 @@
 import cv2
 import numpy as np
-   
 
+from euclideanTracker import *
+tracker = Tracker()
 
-video = cv2.VideoCapture('golyo.mp4')
-#Arr = np.array([1 , 2], dtype=np.uint8)
-image = np.zeros((360,640,3),np.uint8)
+def callBack(x):
+    pass
+
+def findContours(frame):
+    
+    diff = MOG.apply(frame)
+    blur = cv2.GaussianBlur(diff, (blurKernel, blurKernel), 0)
+    _, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #cv2.imshow("diff", diff)
+    #cv2.imshow("blur", blur)
+    cv2.imshow("thresh", thresh)
+    return contours
+
+videoPath = 'traffic1.mp4'
+windowName = "Tracker"
+
+color = np.random.randint(0,255,(1500,3))
+
+video = cv2.VideoCapture(videoPath)
+cv2.namedWindow(windowName, flags=cv2.WINDOW_AUTOSIZE)
+
+MOG = cv2.createBackgroundSubtractorMOG2(history=100,varThreshold=70)
+
+cv2.createTrackbar("Threshold", windowName, 20, 100, callBack)
+cv2.createTrackbar("BlurKernel", windowName, 60, 100, callBack)
+cv2.createTrackbar("MinArea", windowName, 400, 10000, callBack)
+cv2.createTrackbar("pDistance", windowName, 40, 500, callBack)
+cv2.createTrackbar("Speed", windowName, 450, 499, callBack)
 
 while(video.isOpened()):
-    opened, frame1 = video.read()
-    opened, frame2 = video.read()
     
-    if opened == True:
-        frame1r = cv2.resize(frame1, (640, 360))
-        frame2r = cv2.resize(frame2, (640, 360))
-        
-        diff = cv2.absdiff(frame1r, frame2r)
-        gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray ,(7,7), cv2.BORDER_DEFAULT)
-        _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
-        dilated = cv2.dilate(thresh, None, iterations = 2)
-        contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        
-        cv2.imshow('diff', dilated)
-        
-        xpos = ypos = 0
-        contours, hierarchy= cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        number = 0
-        numberOfObjects= len(contours)
-        for contour in contours:
-            
-            number += 1
-            text = "object: "+ str(number)
-            
-            (x, y, w, h) = cv2.boundingRect(contour)
-            xpos = x
-            ypos = y
-            #print(x, y)
-            image[y,x] = [0,255,0]
-            cv2.putText(image, (str(number)), (x+2, y+2), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 0, 255), 1)
-            #np.append(Arr, [xpos, ypos])
+    opened,frame=video.read()
 
-            print ("Object: ", str(numberOfObjects), " X:", x, "Y:", y)
-            cv2.putText(frame1r, text, (x+20, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-            
-            if cv2.contourArea(contour) < 2000:
-                continue
-            cv2.rectangle(frame1r, (x,y), (x+w, y+h), (0, 255, 0), 1)
-            #cv2.circle(frame1, (x,y), 50, (0, 255, 0), 1)
-            cv2.putText(frame1r, "Status: {}".format('movement'), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-            cv2.putText(frame1r, "X pos: {}".format(x), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-            cv2.putText(frame1r, "X pos: {}".format(y), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-            #cv2.drawContours(frame1, contours, -1, (0, 0, 255), 2)
+    
+    threshold = cv2.getTrackbarPos("Threshold", windowName)
 
-        cv2.imshow('Frame1', frame1r)
-
-        if cv2.waitKey(70) & 0xFF == ord('q'):
-            break
-        #if cv2.waitKey(1) & 0xff == ord('a'):
-            #snitch = frame1
-            #cv2.imshow('snitch', snitch)
+    blurKernel = cv2.getTrackbarPos("BlurKernel", windowName)
+    if blurKernel % 2 == 0 or blurKernel == 0:
+        blurKernel += 1
         
-    else:
-        print("End")
+    minArea = cv2.getTrackbarPos("MinArea", windowName)
+    distanceOfPoints = cv2.getTrackbarPos("pDistance", windowName)
+    speed = cv2.getTrackbarPos("Speed", windowName)
+        
+    #végtelenített lejátszás
+    if not opened:
+        video = cv2.VideoCapture(videoPath)
+        tracker.idCount = 0
+        tracker.centerPoints = {}
+        continue
+        
+    frame = cv2.resize(frame, (800, 600))
+    
+    contours = findContours(frame)
+    centers=[]
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area > minArea:
+            cv2.drawContours(frame,[contour],-1,(255,255,255),1)
+            x,y,w,h = cv2.boundingRect(contour)
+            cv2.circle(frame, ((x + x + w) // 2, (y + y + h) // 2), int(distanceOfPoints), (255, 0, 0), 1)
+            centers.append([x,y,w,h])
+            
+    centerSort = tracker.Euclidean(centers, distanceOfPoints)
+    
+    for i in centerSort:
+        x,y,w,h,id = i
+        cv2.rectangle(frame,(x,y),(x+w,y+h),color[id].tolist(),2)
+        cv2.putText(frame,str(id),(x,y -1),cv2.FONT_HERSHEY_COMPLEX,0.6,(255,255,0),1)
+    
+    cv2.putText(frame,str('Q to Quit'),(5,30),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),4)
+    if cv2.waitKey(500-speed) & 0xFF == ord('q'):
         break
-#print(Arr)
-cv2.imwrite("result.png",image)
-
+    cv2.imshow(windowName, frame)
 video.release()
 cv2.destroyAllWindows()
