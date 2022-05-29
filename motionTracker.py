@@ -18,7 +18,7 @@ def findContours(frame):
     cv2.imshow("thresh", thresh)
     return contours
 
-videoPath = 'traffic1.mp4'
+videoPath = 'videok/traffic1.mp4'
 windowName = "Tracker"
 
 color = np.random.randint(0,255,(1500,3))
