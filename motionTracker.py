@@ -8,25 +8,24 @@ def callBack(x):
     pass
 
 def findContours(frame):
-    
     diff = MOG.apply(frame)
     blur = cv2.GaussianBlur(diff, (blurKernel, blurKernel), 0)
     _, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #print(contours)
     #cv2.imshow("diff", diff)
     #cv2.imshow("blur", blur)
     cv2.imshow("thresh", thresh)
     return contours
-
-videoPath = 'videok/traffic1.mp4'
+videoPath = 'videok/bunny.mp4'
 windowName = "Tracker"
 
-color = np.random.randint(0,255,(1500,3))
+color = np.random.randint(0,255,(3000,3))
 
 video = cv2.VideoCapture(videoPath)
 cv2.namedWindow(windowName, flags=cv2.WINDOW_AUTOSIZE)
 
-MOG = cv2.createBackgroundSubtractorMOG2(history=100,varThreshold=70)
+MOG = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=70)
 
 cv2.createTrackbar("Threshold", windowName, 20, 100, callBack)
 cv2.createTrackbar("BlurKernel", windowName, 60, 100, callBack)
@@ -73,11 +72,14 @@ while(video.isOpened()):
     for i in centerSort:
         x,y,w,h,id = i
         cv2.rectangle(frame,(x,y),(x+w,y+h),color[id].tolist(),2)
-        cv2.putText(frame,str(id),(x,y -1),cv2.FONT_HERSHEY_COMPLEX,0.6,(255,255,0),1)
+        cv2.putText(frame,str(id),(x,y -1),cv2.FONT_HERSHEY_COMPLEX,0.6,(0,255,255),1)
     
     cv2.putText(frame,str('Q to Quit'),(5,30),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),4)
     if cv2.waitKey(500-speed) & 0xFF == ord('q'):
         break
     cv2.imshow(windowName, frame)
+print(np. __version__)
+
 video.release()
 cv2.destroyAllWindows()
+
